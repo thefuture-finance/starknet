@@ -20,6 +20,25 @@ export type TokenBalance = {
   valueInUSD: string;
 };
 
+export type Token = {
+  symbol: string;
+  holdingAmount: string;
+  tokenContractAddress: string;
+};
+
+export type TokenData = {
+  page: string;
+  limit: string;
+  totalPage: string;
+  tokenList: Token[];
+};
+
+export type ResponseTokenData = {
+  code: string;
+  msg: string;
+  data: TokenData;
+};
+
 export async function getCoinData(): Promise<CoinData[] | null> {
   try {
     const result: any[] = await ky
@@ -51,9 +70,7 @@ export async function getCoinData(): Promise<CoinData[] | null> {
   }
 }
 
-export const getUserBalance = async (
-  user: string
-): Promise<TokenBalance[] | null> => {
+export const getUserBalance = async (user: string): Promise<Token[] | null> => {
   try {
     const result = await ky
       .get(
@@ -66,32 +83,24 @@ export const getUserBalance = async (
             limit: "50",
           },
           headers: {
-            "OK-ACCESS-KEY": /*api gir buyara*/",
+            "OK-ACCESS-KEY": "745a3773-0209-4516-884a-e3db774c896b",
             "Content-Type": "application/json",
           },
-        }
+        },
       )
-      .json();
-
-    console.log("Raw OKLink API response:", JSON.stringify(result, null, 2));
-
-    if (!result?.data?.tokenList) {
-      throw new Error("Unexpected API response format");
-    }
+      .json<ResponseTokenData>();
 
     return result.data.tokenList;
   } catch (error: any) {
     console.error(
       "Error fetching user balance from OKLink API:",
-      error.message
+      error.message,
     );
     return null;
   }
 };
 
-export const calculateTokenBalancesInUSD = async (
-  user: string
-): Promise<TokenBalance[] | null> => {
+export const calculateTokenBalancesInUSD = async (user: string) => {
   try {
     const tokens = await getUserBalance(user);
     if (!tokens) throw new Error("Failed to fetch user tokens");
@@ -103,7 +112,7 @@ export const calculateTokenBalancesInUSD = async (
     const balancesInUSD = tokens.map((token: any) => {
       const priceInfo = prices.find(
         (price: CoinData) =>
-          price.symbol.toLowerCase() === token.symbol.toLowerCase()
+          price.symbol.toLowerCase() === token.symbol.toLowerCase(),
       );
 
       const balance = Number(token.holdingAmount);
@@ -129,7 +138,6 @@ export const calculateTokenBalancesInUSD = async (
 // Call the function to test
 (async () => {
   const balances = await calculateTokenBalancesInUSD(
-    "0x044a33f085b5ef75bde5df11d188e4c16db6c090f8c9c38c6020fbe6e24fcbc0"
+    "0x044a33f085b5ef75bde5df11d188e4c16db6c090f8c9c38c6020fbe6e24fcbc0",
   );
-  console.log(balances);
 })();
