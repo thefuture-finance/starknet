@@ -41,14 +41,14 @@ export type ResponseTokenData = {
 
 export async function getCoinData(): Promise<CoinData[] | null> {
   try {
-    const result: any[] = await ky
+    const result = await ky
       .get("https://api.coingecko.com/api/v3/coins/markets", {
         searchParams: {
           vs_currency: "usd",
           price_change_percentage: "1h,24h,7d,30d",
         },
       })
-      .json();
+      .json<CoinData[]>();
 
     const data = result?.map((data: any) => ({
       id: data.id,
@@ -110,20 +110,23 @@ export const calculateTokenBalancesInUSD = async (user: string) => {
       throw new Error("Failed to fetch coin prices or no prices available");
 
     const balancesInUSD = tokens.map((token: any) => {
-      const priceInfo = prices.find(
+      const tokenInfo = prices.find(
         (price: CoinData) =>
           price.symbol.toLowerCase() === token.symbol.toLowerCase(),
       );
 
       const balance = Number(token.holdingAmount);
-      const price = priceInfo ? priceInfo.price : 0;
+      const price = tokenInfo ? tokenInfo.price : 0;
       const valueInUSD = balance * price;
 
       return {
         symbol: token.symbol,
         balance: balance,
         price: price,
-        valueInUSD: price > 0 ? valueInUSD.toFixed(2) : "N/A",
+        valueInUSD: price * balance,
+        day7: tokenInfo?.day7,
+        hour24: tokenInfo?.hour24,
+        hour1: tokenInfo?.hour1,
       };
     });
 
